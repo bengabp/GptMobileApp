@@ -4,6 +4,10 @@ import 'package:flutter/material.dart';
 import './screens/chat_screen.dart';
 import './screens/login_screen.dart';
 import './screens/register_screen.dart';
+import 'package:google_fonts/google_fonts.dart';
+
+import 'screens/prechat.dart';
+
 
 void main() {
   runApp(Ai4Study());
@@ -24,12 +28,13 @@ class _Ai4StudyState extends State<Ai4Study> {
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-      home: isLoggedIn == true ? ChatScreen() : LoginScreen(),
+      home: isLoggedIn == true ? PreChatScreen() : LoginScreen(),
       debugShowCheckedModeBanner: false,
       theme: ThemeData(
         // Define the default brightness and colors.
         brightness: Brightness.light,
-        primarySwatch: Colors.orange
+        primarySwatch: Colors.orange,
+        textTheme:GoogleFonts.signikaTextTheme()
       ),
     );
   }

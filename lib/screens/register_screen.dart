@@ -8,6 +8,7 @@ import 'package:flutter/cupertino.dart';
 
 import 'chat_screen.dart';
 import 'login_screen.dart';
+import 'prechat.dart';
 
 class RegisterScreen extends StatefulWidget {
   @override
@@ -107,7 +108,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                                                         context,
                                                         MaterialPageRoute(
                                                             builder: (context) =>
-                                                                ChatScreen()),
+                                                                PreChatScreen()),
                                                         (route) => false)
                                                   })
                                             })

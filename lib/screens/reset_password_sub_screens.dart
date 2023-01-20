@@ -7,6 +7,8 @@ import 'package:ai4study/screens/login_screen.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/cupertino.dart';
 
+import 'prechat.dart';
+
 class SetNewPassword extends StatefulWidget {
   @override
   State<SetNewPassword> createState() => _SetNewPasswordState();
@@ -84,7 +86,7 @@ class _SetNewPasswordState extends State<SetNewPassword> {
                                                           MaterialPageRoute(
                                                               builder: (BuildContext
                                                                       context) =>
-                                                                  ChatScreen()),
+                                                                  PreChatScreen()),
                                                           (r) {
                                                         return false;
                                                       })
@@ -294,5 +296,3 @@ class _EnterEmailScreenState extends State<EnterEmailScreen> {
     );
   }
 }
-
-
