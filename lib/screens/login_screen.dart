@@ -3,6 +3,7 @@
 import 'dart:async';
 
 import 'package:ai4study/screens/chat_screen.dart';
+import 'package:ai4study/screens/register_screen.dart';
 import 'package:ai4study/screens/reset_password_screen.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/cupertino.dart';
@@ -77,19 +78,44 @@ class _LoginScreenState extends State<LoginScreen> {
                   ),
                 ),
                 Padding(
-                  padding: const EdgeInsets.only(bottom:8.0),
-                  child: TextButton.icon(
-                      onPressed: () => {
-                        Navigator.push(context,
-                        MaterialPageRoute(builder: (context) => ResetPasswordScreen(),fullscreenDialog: true))
-                      },
-                      icon: Icon(Icons.lock_reset_rounded),
-                      label: Text(
-                        "Forgot Password",
-                        style: TextStyle(
-                            fontWeight: FontWeight.bold,
-                            color: primaryWidgetColor),
-                      )),
+                  padding: const EdgeInsets.only(bottom: 8.0),
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      TextButton.icon(
+                          onPressed: () => {
+                                Navigator.push(
+                                    context,
+                                    MaterialPageRoute(
+                                        builder: (context) =>
+                                            ResetPasswordScreen(),
+                                        fullscreenDialog: true))
+                              },
+                          icon: Icon(Icons.lock_reset_rounded),
+                          label: Text(
+                            "Forgot Password",
+                            style: TextStyle(
+                                fontWeight: FontWeight.bold,
+                                color: primaryWidgetColor),
+                          )),
+                      TextButton(
+                        style:ButtonStyle(backgroundColor: MaterialStateProperty.all(Color.fromARGB(61, 255, 140, 0))),
+                          onPressed: () => {
+                                Navigator.push(
+                                    context,
+                                    MaterialPageRoute(
+                                        builder: (context) => RegisterScreen(),
+                                        fullscreenDialog: true))
+                              },
+                          child: Text(
+                            "Register Here",
+                            style: TextStyle(
+                                fontSize: 16,
+                                fontWeight: FontWeight.bold,
+                               ),
+                          )),
+                    ],
+                  ),
                 ),
                 CupertinoButton(
                   onPressed: show_spinner
@@ -134,7 +160,7 @@ class _LoginScreenState extends State<LoginScreen> {
                   // padding: EdgeInsets.only(left: 50, right: 50),
                   // minSize: 40,
                   color: primaryWidgetColor,
-                )
+                ),
               ],
             ),
           ),
@@ -143,4 +169,3 @@ class _LoginScreenState extends State<LoginScreen> {
     );
   }
 }
-
