@@ -1,10 +1,14 @@
 // ignore_for_file: prefer_const_constructors
 
+import 'dart:io';
+
 import 'package:ai4study/screens/chat_widget.dart';
 import 'package:ai4study/screens/prechat.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/cupertino.dart';
 import './chat_widget.dart';
+import 'package:flutter_sound/flutter_sound.dart';
+import 'package:permission_handler/permission_handler.dart';
 
 class ChatScreen extends StatefulWidget {
   @override
@@ -23,6 +27,43 @@ class _ChatScreenState extends State<ChatScreen>
   String chat_text_message = "";
   ScrollController _scrollController = ScrollController();
   TextEditingController _messageController = TextEditingController();
+
+  FlutterSoundRecorder recorder = FlutterSoundRecorder();
+  bool isRecorderReady = false;
+
+  @override
+  void initState() {
+    super.initState();
+    initRecorder();
+  }
+
+  @override
+  void dispose() {
+    recorder.closeRecorder();
+    super.dispose();
+  }
+
+  Future initRecorder() async {
+    final status = await Permission.microphone.request();
+    print("Status:$status");
+    if (status != PermissionStatus.granted) {
+      throw 'Microphone permission not granted';
+    }
+    await recorder.openRecorder();
+    isRecorderReady = true;
+  }
+
+  Future record() async {
+    if (!isRecorderReady) return;
+    await recorder.startRecorder(toFile: 'audio');
+  }
+
+  Future stop() async {
+    if (!isRecorderReady) return;
+    final path = await recorder.stopRecorder();
+    final audioFile = File(path!);
+    print("Recorded audio: $audioFile");
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -54,8 +95,8 @@ class _ChatScreenState extends State<ChatScreen>
                       bool isMine = chat_messages[index].is_my_message;
 
                       return isMine
-                          ? UserMessage(messageText,DateTime.now())
-                          : BotMessage(messageText,DateTime.now());
+                          ? UserMessage(messageText, DateTime.now())
+                          : BotMessage(messageText, DateTime.now());
                     })),
               ),
             ),
@@ -105,6 +146,11 @@ class _ChatScreenState extends State<ChatScreen>
                       onPressed: () {
                         setState(() {
                           is_recording = !is_recording;
+                          if (is_recording) {
+                            record();
+                          } else {
+                            stop();
+                          }
                         });
                       },
                       child: Icon(is_recording ? Icons.mic : Icons.mic_off,
