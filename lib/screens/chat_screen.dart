@@ -46,30 +46,16 @@ class _ChatScreenState extends State<ChatScreen>
               controller: _scrollController,
               padding: EdgeInsets.only(bottom: 100),
               child: Container(
-                padding:EdgeInsets.only(left:10,right:10),
+                padding: EdgeInsets.only(left: 10, right: 10),
                 child: Column(
                     crossAxisAlignment: CrossAxisAlignment.stretch,
                     children: List.generate(chat_messages.length, (index) {
                       String messageText = chat_messages[index].text;
                       bool isMine = chat_messages[index].is_my_message;
 
-                      return Align(
-                        alignment: isMine
-                            ? Alignment.centerRight
-                            : Alignment.centerLeft,
-                        child: Container(
-                          
-                          constraints: BoxConstraints(maxWidth: 200),
-                          padding: EdgeInsets.only(
-                              left: 16, right: 16, top: 10, bottom: 10),
-                              margin:EdgeInsets.only(top:5,bottom:5),
-                          child: Text(messageText,style: TextStyle(fontWeight:isMine ? FontWeight.normal: FontWeight.bold),),
-                          decoration:BoxDecoration(
-                            borderRadius: BorderRadius.circular(13),
-                            color:isMine ? Color.fromARGB(241, 242, 237, 230) : Color.fromARGB(40, 255, 153, 0),
-                          )
-                        ),
-                      );
+                      return isMine
+                          ? UserMessage(messageText,DateTime.now())
+                          : BotMessage(messageText,DateTime.now());
                     })),
               ),
             ),
@@ -136,7 +122,7 @@ class _ChatScreenState extends State<ChatScreen>
                           _messageController.clear();
                         });
                         _scrollController.animateTo(
-                            _scrollController.position.maxScrollExtent+100,
+                            _scrollController.position.maxScrollExtent + 100,
                             duration: Duration(milliseconds: 1000),
                             curve: Curves.easeOut);
                       }
