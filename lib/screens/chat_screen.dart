@@ -4,13 +4,12 @@ import 'dart:convert';
 import 'dart:io';
 
 import 'package:ai4study/screens/chat_widget.dart';
-import 'package:ai4study/screens/prechat.dart';
-import 'package:flutter/material.dart';
 import 'package:flutter/cupertino.dart';
-import './chat_widget.dart';
+import 'package:flutter/material.dart';
 import 'package:flutter_sound/flutter_sound.dart';
-import 'package:permission_handler/permission_handler.dart';
 import 'package:http/http.dart' as http;
+import 'package:permission_handler/permission_handler.dart';
+import 'package:http_parser/http_parser.dart';
 
 class ChatScreen extends StatefulWidget {
   @override
@@ -29,6 +28,8 @@ class _ChatScreenState extends State<ChatScreen>
   FlutterSoundRecorder recorder = FlutterSoundRecorder();
   bool isRecorderReady = false;
   var fakePath;
+  final String audioUploadUrl = "http://139.162.220.59:8000/transcribe";
+  bool is_transcribing = false;
 
   SnackBar _createSnackBar(String text) {
     return SnackBar(
@@ -69,8 +70,7 @@ class _ChatScreenState extends State<ChatScreen>
     if (!isRecorderReady) return;
     final path = await recorder.stopRecorder();
     final audioFile = File(path!);
-    fakePath = audioFile.absolute;
-    print("Recorded audio: $audioFile");
+    return audioFile;
   }
 
   Future _makeNetworkRequest() async {
@@ -89,16 +89,40 @@ class _ChatScreenState extends State<ChatScreen>
   }
 
   _scrollToBottom() {
-    try{
-      _scrollController.animateTo(_scrollController.position.maxScrollExtent + 50,
-          duration: Duration(milliseconds: 500), curve: Curves.easeOut);
-    } on AssertionError {
+    try {
+      _scrollController.animateTo(
+          _scrollController.position.maxScrollExtent + 50,
+          duration: Duration(milliseconds: 500),
+          curve: Curves.easeOut);
+    } on AssertionError {}
+  }
 
-    }
+  _transcribeAudio(File audioFile) async {
+    setState(() {
+      is_transcribing = true;
+    });
+    var postUri = Uri.parse(audioUploadUrl);
+    var request = new http.MultipartRequest("POST", postUri);
+    String speechText = "";
+    request.headers["Content-Type"] = "multipart/form-data";
+    request.fields['something'] = "this is some thing";
+    request.files
+        .add(await http.MultipartFile.fromPath("audioFile", audioFile.path));
+    request.send().then((response) async {
+      String server_response = await response.stream.bytesToString();
+      var jsonData = jsonDecode(server_response) as Map;
+      speechText = jsonData["speech_text"];
+      setState(() {
+        print(speechText);
+        is_transcribing = false;
+        _messageController.text = speechText;
+      });
+    });
   }
 
   @override
   Widget build(BuildContext context) {
+    print("Reloaded");
     return Scaffold(
       appBar: AppBar(
         title: Text("Ai4Study"),
@@ -106,6 +130,16 @@ class _ChatScreenState extends State<ChatScreen>
         elevation: 0,
         leading: IconButton(onPressed: () => {}, icon: Icon(Icons.menu)),
         toolbarHeight: 70,
+        actions: [
+          Container(
+              child: CircleAvatar(
+                backgroundImage: AssetImage("assets/chatbot.png"),
+                backgroundColor: Colors.transparent,
+                radius: 23,
+              ),
+              decoration: BoxDecoration(),
+              margin: EdgeInsets.only(top: 10)),
+        ],
       ),
       body: Stack(
         children: [
@@ -122,24 +156,25 @@ class _ChatScreenState extends State<ChatScreen>
                           TextStyle(fontWeight: FontWeight.bold, fontSize: 20),
                     ),
                   )
-                :  SingleChildScrollView(
-              physics: ScrollPhysics(),
-              controller: _scrollController,
-              padding: EdgeInsets.only(bottom: 100),
-              child: Container(
-                padding: EdgeInsets.only(left: 10, right: 10),
-                child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.stretch,
-                        children: List.generate(chat_messages.length, (index) {
-                          String messageText = chat_messages[index].text;
-                          bool isMine = chat_messages[index].is_my_message;
+                : SingleChildScrollView(
+                    physics: ScrollPhysics(),
+                    controller: _scrollController,
+                    padding: EdgeInsets.only(bottom: 100),
+                    child: Container(
+                      padding: EdgeInsets.only(left: 10, right: 10),
+                      child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.stretch,
+                          children:
+                              List.generate(chat_messages.length, (index) {
+                            String messageText = chat_messages[index].text;
+                            bool isMine = chat_messages[index].is_my_message;
 
-                          return isMine
-                              ? UserMessage(messageText, DateTime.now())
-                              : BotMessage(messageText, DateTime.now());
-                        })),
-              ),
-            ),
+                            return isMine
+                                ? UserMessage(messageText, DateTime.now())
+                                : BotMessage(messageText, DateTime.now());
+                          })),
+                    ),
+                  ),
           ),
           Align(
             alignment: Alignment.bottomCenter,
@@ -175,40 +210,58 @@ class _ChatScreenState extends State<ChatScreen>
                       placeholder: "Write message...",
                       controller: _messageController,
                       padding: EdgeInsets.all(10),
-                      onChanged: (value) => {chat_text_message = value.trim()},
+                      onChanged: (value) {},
                     ),
                   ),
                   SizedBox(
                     width: 5,
                   ),
-                  FloatingActionButton(
-                      heroTag: "RecordAudioButton",
-                      onPressed: () {
-                        setState(() {
-                          is_recording = !is_recording;
-                          if (is_recording) {
-                            record();
-                            ScaffoldMessenger.of(context)
-                                .showSnackBar(_createSnackBar("Recording..."));
-                          } else {
-                            stop();
-                            ScaffoldMessenger.of(context).showSnackBar(
-                                _createSnackBar(
-                                    "Stopped Recording...PATH:$fakePath"));
-                          }
-                        });
-                      },
-                      child: Icon(is_recording ? Icons.mic : Icons.mic_off,
-                          color: Colors.white, size: 18),
-                      elevation: 0),
+                  SizedBox(
+                    height: 50,
+                    width: 40,
+                    child: Stack(
+                      fit: StackFit.passthrough,
+                      children: [
+                        if (is_transcribing) Padding(
+                          padding: const EdgeInsets.all(1),
+                          child: CircularProgressIndicator(
+                            color: Color.fromARGB(213, 223, 113, 10),
+                            strokeWidth: 2,
+                          ),
+                        ),
+                        FloatingActionButton(
+                          heroTag: "RecordAudioButton",
+                          onPressed:is_transcribing ? null : () async {
+                            setState(() {
+                              is_recording = !is_recording;
+                            });
+                            if (is_recording) {
+                              record();
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                  _createSnackBar("Recording..."));
+                            } else {
+                              File audioFile = await stop();
+                              await _transcribeAudio(audioFile);
+                              // ScaffoldMessenger.of(context).showSnackBar(
+                              //     _createSnackBar(
+                              //         "Stopped Recording...PATH:$fakePath"));
+                            }
+                          },
+                          child: Icon(is_recording ? Icons.mic : Icons.mic_off,
+                              color: Color.fromARGB(255, 214, 103, 12),
+                              size: 18),
+                          elevation: 0,
+                          backgroundColor: Color.fromARGB(57, 255, 128, 0),
+                        ),
+                      ],
+                    ),
+                  ),
                   FloatingActionButton(
                     heroTag: "SendButton",
                     onPressed: () async {
-                      String userMessage = _messageController.text.trim();
-                      if (userMessage.length > 0) {
-                        // Send message to bot
+                      if (_messageController.text.length > 0) {
                         ChatMessage new_chat_message =
-                            ChatMessage(userMessage, true);
+                            ChatMessage(_messageController.text, true, "text");
                         setState(() {
                           chat_messages.add(new_chat_message);
                           _messageController.clear();
@@ -216,12 +269,13 @@ class _ChatScreenState extends State<ChatScreen>
                         _scrollToBottom();
 
                         // Get Bot Response
-                        String botReply = await _getBotResponse(userMessage);
+                        String botReply =
+                            await _getBotResponse(_messageController.text);
                         ChatMessage new_bot_message =
-                            ChatMessage(botReply, false);
+                            ChatMessage(botReply, false, "text");
                         setState(() {
                           chat_messages.add(new_bot_message);
-                          userMessage = "";
+                          // currentChatMessage = CurrentChatMessage();
                         });
                         _scrollToBottom();
                       }

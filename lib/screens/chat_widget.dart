@@ -9,8 +9,10 @@ import 'package:intl/intl.dart';
 class ChatMessage {
   String text = "";
   bool is_my_message;
+  String messageType = "text";
+  var audioFile;
 
-  ChatMessage(this.text, this.is_my_message);
+  ChatMessage(this.text, this.is_my_message, this.messageType);
 }
 
 class UserMessage extends StatefulWidget {
@@ -78,6 +80,7 @@ class _BotMessageState extends State<BotMessage> with TickerProviderStateMixin {
     return Align(
       alignment: Alignment.centerLeft,
       child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Container(
             child: CircleAvatar(
@@ -86,6 +89,7 @@ class _BotMessageState extends State<BotMessage> with TickerProviderStateMixin {
               radius: 18,
             ),
             decoration: BoxDecoration(),
+            margin:EdgeInsets.only(top:10)
           ),
           GestureDetector(
             onTap: () => {
