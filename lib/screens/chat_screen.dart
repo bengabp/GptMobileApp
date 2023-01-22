@@ -4,6 +4,7 @@ import 'dart:convert';
 import 'dart:io';
 
 import 'package:ai4study/screens/chat_widget.dart';
+import 'package:ai4study/screens/navigation_drawer.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_sound/flutter_sound.dart';
@@ -31,12 +32,15 @@ class _ChatScreenState extends State<ChatScreen>
   final String audioUploadUrl = "http://139.162.220.59:8000/transcribe";
   bool is_transcribing = false;
 
+  final GlobalKey<ScaffoldState> _key = GlobalKey();
+
   SnackBar _createSnackBar(String text) {
     return SnackBar(
-        content: Text(text),
-        dismissDirection: DismissDirection.horizontal,
-        behavior: SnackBarBehavior.floating,
-        margin: EdgeInsets.only(bottom: 80, left: 20, right: 20));
+      content: Text(text),
+      dismissDirection: DismissDirection.horizontal,
+      behavior: SnackBarBehavior.floating,
+      margin: EdgeInsets.only(bottom: 80, left: 20, right: 20),
+    );
   }
 
   @override
@@ -124,22 +128,28 @@ class _ChatScreenState extends State<ChatScreen>
   Widget build(BuildContext context) {
     print("Reloaded");
     return Scaffold(
+      key: _key,
       appBar: AppBar(
-        title: Text("Ai4Study"),
+        title: Wrap(
+          crossAxisAlignment: WrapCrossAlignment.center,
+          spacing: 10,
+          children: [
+            Container(
+                child: CircleAvatar(
+                  backgroundImage: AssetImage("assets/chatbot.png"),
+                  backgroundColor: Colors.transparent,
+                ),
+                decoration: BoxDecoration(),
+                margin: EdgeInsets.only(top: 10)),
+            Text("Ai4Study")
+          ],
+        ),
         backgroundColor: Colors.white,
         elevation: 0,
-        leading: IconButton(onPressed: () => {}, icon: Icon(Icons.menu)),
+        leading: IconButton(
+            onPressed: () => {_key.currentState!.openDrawer()},
+            icon: Icon(Icons.menu)),
         toolbarHeight: 70,
-        actions: [
-          Container(
-              child: CircleAvatar(
-                backgroundImage: AssetImage("assets/chatbot.png"),
-                backgroundColor: Colors.transparent,
-                radius: 23,
-              ),
-              decoration: BoxDecoration(),
-              margin: EdgeInsets.only(top: 10)),
-        ],
       ),
       body: Stack(
         children: [
@@ -151,7 +161,8 @@ class _ChatScreenState extends State<ChatScreen>
             child: chat_messages.length <= 0
                 ? Center(
                     child: Text(
-                      "No messages yet",
+                      "I am help you do many things,just ask, I am not perfect however",
+                      textAlign: TextAlign.center,
                       style:
                           TextStyle(fontWeight: FontWeight.bold, fontSize: 20),
                     ),
@@ -222,31 +233,34 @@ class _ChatScreenState extends State<ChatScreen>
                     child: Stack(
                       fit: StackFit.passthrough,
                       children: [
-                        if (is_transcribing) Padding(
-                          padding: const EdgeInsets.all(1),
-                          child: CircularProgressIndicator(
-                            color: Color.fromARGB(213, 223, 113, 10),
-                            strokeWidth: 2,
+                        if (is_transcribing)
+                          Padding(
+                            padding: const EdgeInsets.all(1),
+                            child: CircularProgressIndicator(
+                              color: Color.fromARGB(213, 223, 113, 10),
+                              strokeWidth: 2,
+                            ),
                           ),
-                        ),
                         FloatingActionButton(
                           heroTag: "RecordAudioButton",
-                          onPressed:is_transcribing ? null : () async {
-                            setState(() {
-                              is_recording = !is_recording;
-                            });
-                            if (is_recording) {
-                              record();
-                              ScaffoldMessenger.of(context).showSnackBar(
-                                  _createSnackBar("Recording..."));
-                            } else {
-                              File audioFile = await stop();
-                              await _transcribeAudio(audioFile);
-                              // ScaffoldMessenger.of(context).showSnackBar(
-                              //     _createSnackBar(
-                              //         "Stopped Recording...PATH:$fakePath"));
-                            }
-                          },
+                          onPressed: is_transcribing
+                              ? null
+                              : () async {
+                                  setState(() {
+                                    is_recording = !is_recording;
+                                  });
+                                  if (is_recording) {
+                                    record();
+                                    ScaffoldMessenger.of(context).showSnackBar(
+                                        _createSnackBar("Recording..."));
+                                  } else {
+                                    File audioFile = await stop();
+                                    await _transcribeAudio(audioFile);
+                                    // ScaffoldMessenger.of(context).showSnackBar(
+                                    //     _createSnackBar(
+                                    //         "Stopped Recording...PATH:$fakePath"));
+                                  }
+                                },
                           child: Icon(is_recording ? Icons.mic : Icons.mic_off,
                               color: Color.fromARGB(255, 214, 103, 12),
                               size: 18),
@@ -259,9 +273,10 @@ class _ChatScreenState extends State<ChatScreen>
                   FloatingActionButton(
                     heroTag: "SendButton",
                     onPressed: () async {
-                      if (_messageController.text.length > 0) {
+                      String _message = _messageController.text.trim();
+                      if (_message.length > 0) {
                         ChatMessage new_chat_message =
-                            ChatMessage(_messageController.text, true, "text");
+                            ChatMessage(_message, true, "text");
                         setState(() {
                           chat_messages.add(new_chat_message);
                           _messageController.clear();
@@ -269,13 +284,12 @@ class _ChatScreenState extends State<ChatScreen>
                         _scrollToBottom();
 
                         // Get Bot Response
-                        String botReply =
-                            await _getBotResponse(_messageController.text);
+
+                        String botReply = await _getBotResponse(_message);
                         ChatMessage new_bot_message =
                             ChatMessage(botReply, false, "text");
                         setState(() {
                           chat_messages.add(new_bot_message);
-                          // currentChatMessage = CurrentChatMessage();
                         });
                         _scrollToBottom();
                       }
@@ -293,6 +307,7 @@ class _ChatScreenState extends State<ChatScreen>
           )
         ],
       ),
+      drawer: NavigationDrawer(),
     );
   }
 }
