@@ -190,7 +190,7 @@ class _ChatScreenState extends State<ChatScreen>
           Align(
             alignment: Alignment.bottomCenter,
             child: Container(
-              padding: EdgeInsets.only(left: 10, bottom: 10, top: 10),
+              padding: EdgeInsets.all(5),
               height: 60,
               width: double.infinity,
               color: Colors.white,
@@ -221,14 +221,18 @@ class _ChatScreenState extends State<ChatScreen>
                       placeholder: "Write message...",
                       controller: _messageController,
                       padding: EdgeInsets.all(10),
-                      onChanged: (value) {},
+                      onChanged: (value) {
+                        setState(() {
+                          
+                        });
+                      },
                     ),
                   ),
                   SizedBox(
                     width: 5,
                   ),
-                  SizedBox(
-                    height: 50,
+                  _messageController.text.isEmpty ? SizedBox(
+                    height: 40,
                     width: 40,
                     child: Stack(
                       fit: StackFit.passthrough,
@@ -269,7 +273,7 @@ class _ChatScreenState extends State<ChatScreen>
                         ),
                       ],
                     ),
-                  ),
+                  ):
                   FloatingActionButton(
                     heroTag: "SendButton",
                     onPressed: () async {
