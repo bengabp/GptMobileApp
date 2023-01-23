@@ -12,6 +12,7 @@ import 'package:http/http.dart' as http;
 import 'package:permission_handler/permission_handler.dart';
 import 'package:http_parser/http_parser.dart';
 
+
 class ChatScreen extends StatefulWidget {
   @override
   State<ChatScreen> createState() => _ChatScreenState();
@@ -30,16 +31,25 @@ class _ChatScreenState extends State<ChatScreen>
   bool isRecorderReady = false;
   var fakePath;
   final String audioUploadUrl = "http://139.162.220.59:8000/transcribe";
-  bool is_transcribing = false;
+  bool is_sending = false;
 
   final GlobalKey<ScaffoldState> _key = GlobalKey();
+  Color _conversationEntryIconColor = Color.fromARGB(255, 214, 103, 12);
+  Color _conversationEntryFbBgColor = Color.fromARGB(57, 255, 128, 0);
 
   SnackBar _createSnackBar(String text) {
     return SnackBar(
-      content: Text(text),
-      dismissDirection: DismissDirection.horizontal,
+      content: Text(
+        text,
+        style: TextStyle(color: _conversationEntryIconColor),
+      ),
+      duration: Duration(milliseconds: 1000),
+      dismissDirection: DismissDirection.up,
       behavior: SnackBarBehavior.floating,
-      margin: EdgeInsets.only(bottom: 80, left: 20, right: 20),
+      margin: EdgeInsets.only(bottom: 70, left: 20, right: 20),
+      elevation: 0,
+      padding: EdgeInsets.symmetric(vertical: 8, horizontal: 8),
+      backgroundColor: _conversationEntryFbBgColor,
     );
   }
 
@@ -103,7 +113,7 @@ class _ChatScreenState extends State<ChatScreen>
 
   _transcribeAudio(File audioFile) async {
     setState(() {
-      is_transcribing = true;
+      is_sending = true;
     });
     var postUri = Uri.parse(audioUploadUrl);
     var request = new http.MultipartRequest("POST", postUri);
@@ -112,13 +122,15 @@ class _ChatScreenState extends State<ChatScreen>
     request.fields['something'] = "this is some thing";
     request.files
         .add(await http.MultipartFile.fromPath("audioFile", audioFile.path));
-    request.send().then((response) async {
+
+    var response = await request.send()
+    .then((response) async {
       String server_response = await response.stream.bytesToString();
       var jsonData = jsonDecode(server_response) as Map;
       speechText = jsonData["speech_text"];
-      setState(() {
+      setState((){
         print(speechText);
-        is_transcribing = false;
+        is_sending = false;
         _messageController.text = speechText;
       });
     });
@@ -127,6 +139,7 @@ class _ChatScreenState extends State<ChatScreen>
   @override
   Widget build(BuildContext context) {
     print("Reloaded");
+    // is_sending = false;
     return Scaffold(
       key: _key,
       appBar: AppBar(
@@ -222,22 +235,20 @@ class _ChatScreenState extends State<ChatScreen>
                       controller: _messageController,
                       padding: EdgeInsets.all(10),
                       onChanged: (value) {
-                        setState(() {
-                          
-                        });
+                        setState(() {});
                       },
                     ),
                   ),
                   SizedBox(
                     width: 5,
                   ),
-                  _messageController.text.isEmpty ? SizedBox(
+                  SizedBox(
                     height: 40,
                     width: 40,
                     child: Stack(
                       fit: StackFit.passthrough,
                       children: [
-                        if (is_transcribing)
+                        if (is_sending)
                           Padding(
                             padding: const EdgeInsets.all(1),
                             child: CircularProgressIndicator(
@@ -245,66 +256,95 @@ class _ChatScreenState extends State<ChatScreen>
                               strokeWidth: 2,
                             ),
                           ),
-                        FloatingActionButton(
-                          heroTag: "RecordAudioButton",
-                          onPressed: is_transcribing
-                              ? null
-                              : () async {
-                                  setState(() {
-                                    is_recording = !is_recording;
-                                  });
-                                  if (is_recording) {
-                                    record();
-                                    ScaffoldMessenger.of(context).showSnackBar(
-                                        _createSnackBar("Recording..."));
-                                  } else {
-                                    File audioFile = await stop();
-                                    await _transcribeAudio(audioFile);
-                                    // ScaffoldMessenger.of(context).showSnackBar(
-                                    //     _createSnackBar(
-                                    //         "Stopped Recording...PATH:$fakePath"));
+                        _messageController.text.isEmpty
+                            ? FloatingActionButton(
+                                heroTag: "RecordAudioButton",
+                                onPressed: is_sending
+                                    ? null
+                                    : () async {
+                                        setState(() {
+                                          is_recording = !is_recording;
+                                        });
+                                        if (is_recording) {
+                                          record();
+                                          ScaffoldMessenger.of(context)
+                                              .showSnackBar(_createSnackBar(
+                                                  "Recording..."));
+                                        } else {
+                                          File audioFile = await stop();
+                                          try {
+                                            await _transcribeAudio(audioFile);
+                                          } on SocketException {
+                                            // print("Error:$e");
+                                            ScaffoldMessenger.of(context)
+                                                .showSnackBar(_createSnackBar(
+                                                    "Could not connect to server!"));
+                                            setState(() {
+                                              is_sending = false;
+                                            });
+                                          }
+                                        }
+                                      },
+                                child: Icon(
+                                    is_recording ? Icons.mic : Icons.mic_off,
+                                    color: _conversationEntryIconColor,
+                                    size: 18),
+                                elevation: 0,
+                                backgroundColor: _conversationEntryFbBgColor,
+                              )
+                            : FloatingActionButton(
+                                heroTag: "SendButton",
+                                onPressed: () async {
+                                  String _message =
+                                      _messageController.text.trim();
+                                  if (_message.length > 0) {
+                                    ChatMessage new_chat_message =
+                                        ChatMessage(_message, true, "text");
+                                    setState(() {
+                                      chat_messages.add(new_chat_message);
+                                      _messageController.clear();
+                                    });
+                                    _scrollToBottom();
+
+                                    bool failed = false;
+
+                                    // Get Bot Response
+                                    try {
+                                      String botReply =
+                                          await _getBotResponse(_message);
+                                      ChatMessage new_bot_message =
+                                          ChatMessage(botReply, false, "text");
+                                      setState(() {
+                                        chat_messages.add(new_bot_message);
+                                      });
+                                      _scrollToBottom();
+                                    } on SocketException {
+                                      setState(() {
+                                        _messageController.text =
+                                            new_chat_message.text;
+                                        _messageController.selection =
+                                            TextSelection.collapsed(
+                                                offset: _messageController
+                                                    .text.length);
+                                        chat_messages.remove(new_chat_message);
+                                      });
+                                      ScaffoldMessenger.of(context)
+                                          .showSnackBar(
+                                              _createSnackBar("Could not connect to server!"));
+                                    }
                                   }
                                 },
-                          child: Icon(is_recording ? Icons.mic : Icons.mic_off,
-                              color: Color.fromARGB(255, 214, 103, 12),
-                              size: 18),
-                          elevation: 0,
-                          backgroundColor: Color.fromARGB(57, 255, 128, 0),
-                        ),
+                                child: Icon(
+                                  Icons.send,
+                                  color: _conversationEntryIconColor,
+                                  size: 18,
+                                ),
+                                elevation: 0,
+                                backgroundColor: _conversationEntryFbBgColor,
+                              ),
                       ],
                     ),
-                  ):
-                  FloatingActionButton(
-                    heroTag: "SendButton",
-                    onPressed: () async {
-                      String _message = _messageController.text.trim();
-                      if (_message.length > 0) {
-                        ChatMessage new_chat_message =
-                            ChatMessage(_message, true, "text");
-                        setState(() {
-                          chat_messages.add(new_chat_message);
-                          _messageController.clear();
-                        });
-                        _scrollToBottom();
-
-                        // Get Bot Response
-
-                        String botReply = await _getBotResponse(_message);
-                        ChatMessage new_bot_message =
-                            ChatMessage(botReply, false, "text");
-                        setState(() {
-                          chat_messages.add(new_bot_message);
-                        });
-                        _scrollToBottom();
-                      }
-                    },
-                    child: Icon(
-                      Icons.send,
-                      color: Colors.white,
-                      size: 18,
-                    ),
-                    elevation: 0,
-                  ),
+                  )
                 ],
               ),
             ),

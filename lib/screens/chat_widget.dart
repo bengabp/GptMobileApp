@@ -83,14 +83,13 @@ class _BotMessageState extends State<BotMessage> with TickerProviderStateMixin {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Container(
-            child: CircleAvatar(
-              backgroundImage: AssetImage("assets/chatbot.png"),
-              backgroundColor: Colors.transparent,
-              radius: 18,
-            ),
-            decoration: BoxDecoration(),
-            margin:EdgeInsets.only(top:10)
-          ),
+              child: CircleAvatar(
+                backgroundImage: AssetImage("assets/chatbot.png"),
+                backgroundColor: Colors.transparent,
+                radius: 18,
+              ),
+              decoration: BoxDecoration(),
+              margin: EdgeInsets.only(top: 10)),
           GestureDetector(
             onTap: () => {
               setState(() {
@@ -101,7 +100,7 @@ class _BotMessageState extends State<BotMessage> with TickerProviderStateMixin {
             child: AnimatedSize(
               duration: Duration(milliseconds: 100),
               child: Container(
-                  constraints: BoxConstraints(maxWidth: 180),
+                  constraints: BoxConstraints(maxWidth: 200),
                   padding:
                       EdgeInsets.only(left: 16, right: 16, top: 10, bottom: 10),
                   margin: EdgeInsets.only(top: 5, bottom: 5),
