@@ -19,8 +19,12 @@ import './image_to_text_screen.dart';
 String BASEURL = "http://192.168.132.25:5000";
 
 class ChatScreen extends StatefulWidget {
+  String text = "";
+
+  ChatScreen({this.text: ""});
+
   @override
-  State<ChatScreen> createState() => _ChatScreenState();
+  State<ChatScreen> createState() => _ChatScreenState(text);
 }
 
 class _ChatScreenState extends State<ChatScreen>
@@ -30,7 +34,26 @@ class _ChatScreenState extends State<ChatScreen>
   List<ChatMessage> chat_messages = [];
   String chat_text_message = "";
   ScrollController _scrollController = ScrollController();
-  TextEditingController _messageController = TextEditingController();
+  String text;
+  TextEditingController _messageController =
+      TextEditingController();
+
+  CupertinoTextField conversationTextField = CupertinoTextField();
+
+  _ChatScreenState(this.text) {
+    print("TEXT:$text");
+    conversationTextField = CupertinoTextField(
+      placeholder: "Write message...",
+      controller: _messageController,
+      padding: EdgeInsets.all(10),
+      onChanged: (value) {
+        setState(() {});
+      },
+    );
+    if (text.isNotEmpty) {
+      _messageController.text = text;
+    }
+  }
 
   FlutterSoundRecorder recorder = FlutterSoundRecorder();
   bool isRecorderReady = false;
@@ -146,7 +169,6 @@ class _ChatScreenState extends State<ChatScreen>
     XFile? pickedImage = await _picker.pickImage(source: source);
     if (pickedImage != null) {
       Navigator.pop(context);
-      Fluttertoast.showToast(msg: pickedImage.path);
       Navigator.push(
           context,
           MaterialPageRoute(
@@ -231,16 +253,7 @@ class _ChatScreenState extends State<ChatScreen>
                   SizedBox(
                     width: 5,
                   ),
-                  Expanded(
-                    child: CupertinoTextField(
-                      placeholder: "Write message...",
-                      controller: _messageController,
-                      padding: EdgeInsets.all(10),
-                      onChanged: (value) {
-                        setState(() {});
-                      },
-                    ),
-                  ),
+                  Expanded(child: conversationTextField),
                   SizedBox(
                     width: 5,
                   ),
