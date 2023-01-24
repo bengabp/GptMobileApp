@@ -8,7 +8,6 @@ import 'package:google_fonts/google_fonts.dart';
 
 import 'screens/prechat.dart';
 
-
 void main() {
   runApp(Ai4Study());
 }
@@ -31,11 +30,10 @@ class _Ai4StudyState extends State<Ai4Study> {
       home: isLoggedIn == true ? PreChatScreen() : LoginScreen(),
       debugShowCheckedModeBanner: false,
       theme: ThemeData(
-        // Define the default brightness and colors.
-        brightness: Brightness.light,
-        primarySwatch: Colors.orange,
-        textTheme:GoogleFonts.signikaTextTheme()
-      ),
+          // Define the default brightness and colors.
+          brightness: Brightness.light,
+          primarySwatch: Colors.orange,
+          textTheme: GoogleFonts.signikaTextTheme()),
     );
   }
 }

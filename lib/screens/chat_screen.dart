@@ -1,17 +1,22 @@
-// ignore_for_file: prefer_const_constructors
+// ignore_for_file: prefer_const_constructors, prefer_const_literals_to_create_immutables
 
 import 'dart:convert';
 import 'dart:io';
 
+import 'package:ai4study/custom_widgets/select_ocr_image_widget.dart';
 import 'package:ai4study/screens/chat_widget.dart';
 import 'package:ai4study/screens/navigation_drawer.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_sound/flutter_sound.dart';
+import 'package:fluttertoast/fluttertoast.dart';
 import 'package:http/http.dart' as http;
 import 'package:permission_handler/permission_handler.dart';
-import 'package:http_parser/http_parser.dart';
+import 'package:image_picker/image_picker.dart';
 
+import './image_to_text_screen.dart';
+
+String BASEURL = "http://192.168.132.25:5000";
 
 class ChatScreen extends StatefulWidget {
   @override
@@ -30,12 +35,15 @@ class _ChatScreenState extends State<ChatScreen>
   FlutterSoundRecorder recorder = FlutterSoundRecorder();
   bool isRecorderReady = false;
   var fakePath;
-  final String audioUploadUrl = "http://139.162.220.59:8000/transcribe";
+  final String audioUploadUrl = "$BASEURL/transcribe";
   bool is_sending = false;
 
   final GlobalKey<ScaffoldState> _key = GlobalKey();
   Color _conversationEntryIconColor = Color.fromARGB(255, 214, 103, 12);
   Color _conversationEntryFbBgColor = Color.fromARGB(57, 255, 128, 0);
+
+  final ImagePicker _picker = ImagePicker();
+  bool previewImage = false;
 
   SnackBar _createSnackBar(String text) {
     return SnackBar(
@@ -89,14 +97,13 @@ class _ChatScreenState extends State<ChatScreen>
 
   Future _makeNetworkRequest() async {
     print("making network request");
-    final response =
-        await http.get(Uri.parse('http://139.162.220.59:8000/testapi'));
+    final response = await http.get(Uri.parse('$BASEURL/testapi'));
     var decodedJson = jsonDecode(utf8.decode(response.bodyBytes)) as Map;
   }
 
   Future _getBotResponse(String userMessage) async {
-    final response = await http.get(
-        Uri.parse("http://139.162.220.59:8000/chat/text?text=$userMessage"));
+    final response =
+        await http.get(Uri.parse("$BASEURL/chat/text?text=$userMessage"));
     var decodedJson = jsonDecode(utf8.decode(response.bodyBytes)) as Map;
     String textResponse = decodedJson["botReply"];
     return textResponse;
@@ -123,12 +130,11 @@ class _ChatScreenState extends State<ChatScreen>
     request.files
         .add(await http.MultipartFile.fromPath("audioFile", audioFile.path));
 
-    var response = await request.send()
-    .then((response) async {
+    var response = await request.send().then((response) async {
       String server_response = await response.stream.bytesToString();
       var jsonData = jsonDecode(server_response) as Map;
       speechText = jsonData["speech_text"];
-      setState((){
+      setState(() {
         print(speechText);
         is_sending = false;
         _messageController.text = speechText;
@@ -136,10 +142,23 @@ class _ChatScreenState extends State<ChatScreen>
     });
   }
 
+  void _selectImage(BuildContext context, ImageSource source) async {
+    XFile? pickedImage = await _picker.pickImage(source: source);
+    if (pickedImage != null) {
+      Navigator.pop(context);
+      Fluttertoast.showToast(msg: pickedImage.path);
+      Navigator.push(
+          context,
+          MaterialPageRoute(
+              builder: (context) => ImageToTextScreen(pickedImage.path)));
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     print("Reloaded");
     // is_sending = false;
+
     return Scaffold(
       key: _key,
       appBar: AppBar(
@@ -209,23 +228,6 @@ class _ChatScreenState extends State<ChatScreen>
               color: Colors.white,
               child: Row(
                 children: <Widget>[
-                  GestureDetector(
-                    onTap: () {
-                      print("Camera button clicked !");
-                    },
-                    child: Container(
-                      height: 30,
-                      width: 30,
-                      decoration: BoxDecoration(
-                        borderRadius: BorderRadius.circular(30),
-                      ),
-                      child: Icon(
-                        Icons.camera_alt_outlined,
-                        color: Colors.orange,
-                        size: 20,
-                      ),
-                    ),
-                  ),
                   SizedBox(
                     width: 5,
                   ),
@@ -242,6 +244,7 @@ class _ChatScreenState extends State<ChatScreen>
                   SizedBox(
                     width: 5,
                   ),
+                  SelectImageSourceButton(previewImage, _selectImage),
                   SizedBox(
                     height: 40,
                     width: 40,
@@ -329,8 +332,8 @@ class _ChatScreenState extends State<ChatScreen>
                                         chat_messages.remove(new_chat_message);
                                       });
                                       ScaffoldMessenger.of(context)
-                                          .showSnackBar(
-                                              _createSnackBar("Could not connect to server!"));
+                                          .showSnackBar(_createSnackBar(
+                                              "Could not connect to server!"));
                                     }
                                   }
                                 },
