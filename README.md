@@ -12,4 +12,8 @@ Technologies -
     - Flutter - Mobile app (Android and Ios)
     - Python Flask - Backend Apis
     - Docker
-    
+
+
+HOW TO RUN:
+    First clone the backend code and run it then copy the ip address of the server then put in the flutter code
+    Then clone this repo (the flutter app) and build with `flutter run`
